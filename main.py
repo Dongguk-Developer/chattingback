@@ -2,9 +2,9 @@ from typing import Union
 import uvicorn
 from fastapi import FastAPI
 import os
-import pymysql
+# import pymysql
 # test local db server
-conn = pymysql.connect(host='127.0.0.1', user='root', password='rladlgus0625@', db='study_db', charset='utf8')
+# conn = pymysql.connect(host='127.0.0.1', user='root', password='rladlgus0625@', db='study_db', charset='utf8')
 app = FastAPI()
 
 
