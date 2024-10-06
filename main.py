@@ -6,14 +6,14 @@ import os
 import pymysql
 import logging
 from db_util.queryCheck import query_check
+import socketio
+
 origins = [
     "https://api.studyhero.kr",
     "https://studyhero.kr",
 ]
 app = FastAPI()
-
 logging.basicConfig(level=logging.INFO)
-
 
 # CORS 미들웨어 추가
 app.add_middleware(
@@ -23,6 +23,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.get("/")
 def read_root(request:Request):
@@ -74,25 +75,10 @@ def update_calender():
 def delete_calender():
     pass
 
-# 웹소켓 연결
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    print(f"client connected : {websocket.client}")
-    await websocket.accept() # client의 websocket접속 허용
-    await websocket.send_text(f"Welcome client : {websocket.client}")
-    while True:
-        data = await websocket.receive_text()  # client 메시지 수신대기
-        print(f"message received : {data} from : {websocket.client}")
-        await websocket.send_text(f"Message text was: {data}") # client에 메시지 전달
-@app.websocket("/sendMessage")
-async def websocket_endpoint(websocket: WebSocket):
-    print(f"client connected : {websocket.client}")
-    await websocket.accept() # client의 websocket접속 허용
-    await websocket.send_text(f"Welcome client : {websocket.client}")
-    while True:
-        data = await websocket.receive_text()  # client 메시지 수신대기
-        print(f"message received : {data} from : {websocket.client}")
-        await websocket.send_text(f"Message text was: {data}") # client에 메시지 전달
-
+sio = socketio.AsyncServer(async_mode='asgi')#socketio 서버 생성
+app = socketio.ASGIApp(sio, app)#메인 서버와 socketio서버 통합
+@sio.on('test')#test 이벤트에 대한 처리
+def another_event(sid, data):
+    print(sid,data)
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=os.environ['BACKEND_PORT'],reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8090,reload=True)
