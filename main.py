@@ -86,5 +86,5 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.send_text(f"Message text was: {data}") # client에 메시지 전달
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=3000,reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8090,reload=True)
 
