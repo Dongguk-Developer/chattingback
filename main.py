@@ -7,7 +7,6 @@ import pymysql
 import logging
 from db_util.queryCheck import query_check
 import socketio
-
 origins = [
     "https://api.studyhero.kr",
     "https://studyhero.kr",
@@ -81,4 +80,4 @@ app = socketio.ASGIApp(sio, app)#메인 서버와 socketio서버 통합
 def another_event(sid, data):
     print(sid,data)
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8090,reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ['BACKEND_PORT']),reload=True)
