@@ -74,16 +74,6 @@ def update_calender():
 @app.post("/delete_calender")
 def delete_calender():
     pass
-@app.get("/test")
-def get_test_res():
-    conn, cur = mysql_create_session() 
-    try:
-        sql = "SELECT * FROM user"
-        cur.execute(sql)
-        row = cur.fetchone()
-    finally:
-        conn.close()
-    return row
 sio = socketio.AsyncServer(async_mode='asgi')#socketio 서버 생성
 app = socketio.ASGIApp(sio, app)#메인 서버와 socketio서버 통합
 @sio.on('test')#test 이벤트에 대한 처리
