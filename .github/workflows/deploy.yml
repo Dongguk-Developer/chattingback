@@ -21,4 +21,4 @@ jobs:
 
       - name: Run commands on the server
         run: |
-          ssh -i ~/.ssh/id_rsa studyhero-api@api.studyhero.kr "dploy deploy main"
+          ssh -i ~/.ssh/id_rsa studyhero-api@api.studyhero.kr 'export BACKEND_PORT="${{ secrets.BACKEND_PORT }}" && dploy deploy main'
