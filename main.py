@@ -79,13 +79,8 @@ def update_calender():
 def delete_calender():
     pass
 
-# 카카오 OAuth
-KAKAO_CLIENT_ID = "458b13d8b3f70d003a62c112e6af767b"
-KAKAO_CLIENT_SECRET = "HMjhLHfjHsinsiWHBgA7RNgxjAJJQCOn"
-KAKAO_REDIRECT_URI = "http://localhost:8090/oauth/kakao/callback"
-KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize"
-KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token"
-KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me"
+# 카카오 OAuth 키 값 자리
+
 
 @app.get("/auth/kakao")
 async def auth_kakao():
