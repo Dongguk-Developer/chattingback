@@ -1,4 +1,4 @@
-def query_check(query:str):
+def query_check(query: str):
     query = query.upper()
     if "DELETE" in query:
         if not "WHERE" in query:
