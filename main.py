@@ -1,6 +1,6 @@
 from typing import Union
 import uvicorn
-from fastapi import FastAPI,Request,WebSocket,Response,Depends,HTTPException
+from fastapi import FastAPI, Request, WebSocket,Response,Depends,HTTPException
 from fastapi import Cookie
 from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
@@ -196,42 +196,62 @@ def get_profile(request: Request,refresh_token: Optional[str] = Cookie(None),acc
 def update_profile():
     pass
 
+
 @app.post("/get_ranking")
 def get_ranking():
     pass
+
+
 @app.post("/create_chatroom")
 def create_chatroom():
     pass
+
+
 @app.post("/update_chatroom")
 def update_chatroom():
     pass
+
+
 @app.post("/get_chatroom")
 def get_chatroom():
     pass
 
+
 @app.post("/create_emoji")
 def create_emoji():
     pass
+
+
 @app.post("/get_emoji")
 def get_emoji():
     pass
 
+
 @app.post("/create_studyplanner")
 def create_studyplanner():
     pass
+
+
 @app.post("/update_studyplanner")
 def create_studyplanner():
     pass
+
+
 @app.post("/delete_studyplanner")
 def delete_studyplanner():
     pass
 
+
 @app.post("/create_calender")
 def create_calender():
     pass
+
+
 @app.post("/update_calender")
 def update_calender():
     pass
+
+
 @app.post("/delete_calender")
 def delete_calender():
     pass
@@ -507,4 +527,4 @@ async def connect(sid, environ, auth):
         print(e)
         await sio.emit("refresh", room=sid) 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ['BACKEND_PORT'])) # 서버용
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ['BACKEND_PORT']),reload=True)
