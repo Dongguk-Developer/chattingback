@@ -20,22 +20,35 @@ import time
 import random
 from uuid import uuid4
 
+BACK_URL = "https://api.studyhero.kr"
+FRONT_URL = "https://studyhero.kr"
+
+KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize"
+KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token"
+KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me"
+
+KAKAO_REDIRECT_URI = os.environ['KAKAO_REDIRECT_URI']
+KAKAO_CLIENT_ID = os.environ['KAKAO_CLIENT_ID']
+KAKAO_CLIENT_SECRET = os.environ['KAKAO_CLIENT_SECRET']
+JWT_SECRET = os.environ['JWT_SECRET']
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-JWT_SECRET = os.environ['JWT_SECRET']
-KAKAO_CLIENT_SECRET = os.environ['KAKAO_CLIENT_SECRET']
-KAKAO_CLIENT_ID = os.environ['KAKAO_CLIENT_ID']
-KAKAO_REDIRECT_URI = os.environ['KAKAO_REDIRECT_URI']
-KAKAO_AUTH_URL = os.environ['KAKAO_AUTH_URL']
-KAKAO_USER_INFO_URL = os.environ['KAKAO_USER_INFO_URL']
-KAKAO_TOKEN_URL = os.environ['KAKAO_TOKEN_URL']
 session_data = {}
 socket_session_data = {}
 
 def generate_session_id():
     return str(uuid4())
 def verify_access_token(token: str):
+    if token=="":
+        return None
+    try:
+        payload = jwt.decode(token=token,key= JWT_SECRET, algorithms=[ALGORITHM])
+        return payload
+    except JWTError as e:
+        return e
+def verify_message_token(token: str):
     if token=="":
         return None
     try:
@@ -52,8 +65,20 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, KAKAO_CLIENT_SECRET, algorithm=ALGORITHM)
     return encoded_jwt
+def create_message_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=30)
+    to_encode.update({"exp": expire})
+    # to_encode.update({"nickname": })
+    encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
+    return encoded_jwt
 def refresh_access_token(refresh_token):
     grant_type = "refresh_token"
+    client_id = KAKAO_CLIENT_ID
+    client_secret = KAKAO_CLIENT_SECRET
     header = {"Content-type": "application/x-www-form-urlencoded;charset=utf-8"}
     data={
                 "grant_type": grant_type,
@@ -62,17 +87,17 @@ def refresh_access_token(refresh_token):
                 "client_secret": KAKAO_CLIENT_SECRET,
             }
     """
-    grant_type	String	refresh_token으로 고정	                            O
-    client_id	String	앱 REST API 키
-                [내 애플리케이션] > [앱 키]에서 확인 가능	                O
-    refresh_token	String	토큰 발급 시 응답으로 받은 refresh_token
-                    Access Token을 갱신하기 위해 사용	                    O
-    client_secret	String	토큰 발급 시, 보안을 강화하기 위해 추가 확인하는 코드
+    grant_type  String  refresh_token으로 고정                              O
+    client_id   String  앱 REST API 키
+                [내 애플리케이션] > [앱 키]에서 확인 가능                  O
+    refresh_token   String  토큰 발급 시 응답으로 받은 refresh_token
+                    Access Token을 갱신하기 위해 사용                        O
+    client_secret   String  토큰 발급 시, 보안을 강화하기 위해 추가 확인하는 코드
                     [내 애플리케이션] > [카카오 로그인] > [보안]에서 설정 가능
-                    ON 상태인 경우 필수 설정해야 함	                        X
+                    ON 상태인 경우 필수 설정해야 함                         X
     """
     res = requests.post("https://kauth.kakao.com/oauth/token",headers=header,data=data)
-    return res.json()
+    print(res.json())
     # https://kauth.kakao.com/oauth/token
 def parse_cookie(data):
     result = {}
@@ -94,6 +119,7 @@ origins = [
 app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 
+# # CORS 미들웨어 추가
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,  # React 애플리케이션 도메인
@@ -115,15 +141,21 @@ def get_user_by_sessionid(sessionid):
 # 로그인 확인 미들웨어
 async def get_current_user(request: Request):
     sessionid = request.cookies.get("sessionid")
+    
     if sessionid==None or not sessionid in session_data.keys():
         raise HTTPException(status_code=404, detail="로그인 정보가 없습니다.")
+    user_id = session_data[sessionid]['user_id']
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    db = mysql_create_session()
+    cursor = db[1]
+    # if session_data[sessionid]["expire"]<time.time():
+    #     cursor.execute("SELECT kakao_access_token,kakao_refresh_token FROM kakao_api WHERE kakao_id = %s", (user_id,))
+    #     kakao_access_token,kakao_refresh_token = cursor.fetchone()
+    #     refresh_access_token(kakao_refresh_token)
     try:
-        user_id = session_data[sessionid]['user_id']
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        db = mysql_create_session()
+        
 
-        cursor = db[1]
         cursor.execute("SELECT * FROM users WHERE user_id = %s", (user_id,))
         user = cursor.fetchone()
         if not user:
@@ -309,33 +341,40 @@ def auth_kakao_callback(code: str,response: Response,request:Request):
         user_id = user_data.get("id")
 
         # 유저 폴더 생성
+        if not os.path.exists(f"./static"):
+            os.mkdir(f"./static")
         if not os.path.exists(f"./static/{user_id}"):
             os.mkdir(f"./static/{user_id}")
         if not os.path.exists(f"./static/{user_id}/profile_picture"):
             os.mkdir(f"./static/{user_id}/profile_picture")
 
-
         # 유저 프로필 다운로드(이미지, 썸네일)
         profile_image = user_data['properties']['profile_image']
-        profile_image_filename = profile_image.split("?")[0].split("/")[-1]
+        profile_image_path = f"./static/{user_id}/profile_picture/"+profile_image.split("/")[-1]
+        profile_image_url = f"{BACK_URL}/static/{user_id}/profile_picture/"+profile_image.split("/")[-1]
+
         thumbnail_image = user_data['properties']['thumbnail_image']
-        thumbnail_image_filename = thumbnail_image.split("?")[0].split("/")[-1]
-        if not os.path.exists(f"./static/{user_id}/profile_picture/"+profile_image_filename):
-            profile_req = request.get(profile_image)
+        thumbnail_image_path = f"./static/{user_id}/profile_picture/thumbnail_"+thumbnail_image.split("/")[-1]
+
+        profile_image_create_time = 0
+        if not os.path.exists(profile_image_path):
+            profile_req = requests.get(profile_image)
             if profile_req.status_code==200:
-                with open(f"./static/{user_id}/profile_picture/"+profile_image_filename,"wb+") as f:
+                profile_image_create_time = datetime.now()
+                with open(profile_image_path,"wb+") as f:
                     f.write(profile_req.content)
-        if not os.path.exists(f"./static/{user_id}/profile_picture/thumbnail_"+thumbnail_image_filename):
-            thumbnail_req = request.get(thumbnail_image)
+        if not os.path.exists(thumbnail_image_path):
+            thumbnail_req = requests.get(thumbnail_image)
             if thumbnail_req.status_code==200:
-                with open(f"./static/{user_id}/profile_picture/thumbnail_"+thumbnail_image_filename,"wb+") as f:
+                profile_image_create_time = datetime.now()
+                with open(thumbnail_image_path,"wb+") as f:
                     f.write(thumbnail_req.content)
         
         # 유저 데이터 받아오기
         user_nickname = user_data.get("kakao_account").get("profile").get("nickname")
         user_PI_argree = user_data.get("kakao_account").get("profile_nickname_needs_agreement")
         k_id = user_data.get("id")
-        profile_image_id = random.randint(1,2**16)
+        profile_image_id = random.randint(1,2**30) # 프로필 이미지 ID 임의로 발급
         user_create = datetime.now()
         user_update = datetime.now()
         user_age = 0
@@ -395,7 +434,7 @@ def auth_kakao_callback(code: str,response: Response,request:Request):
         if not user:
             cursor.execute(
                 "INSERT INTO proflie_image (pofile_image_id, profile_image_target, target_id, profile_image_url, profile_image_create) VALUES (%s, %s, %s, %s, %s)", 
-                (profile_image_id,'user',k_id,"","")
+                (profile_image_id,'user',k_id,profile_image_url,profile_image_create_time)
             )
             cursor.execute(
                 "INSERT INTO kakao_api (k_id, kakao_id, kakao_name, kakao_tell, kakao_email, kakao_birth, kakao_refresh_token, kakao_access_token) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)", 
@@ -412,15 +451,60 @@ def auth_kakao_callback(code: str,response: Response,request:Request):
         
         return res
     return {"error": "인증 실패"}
-
 @app.get('/get_userinfo')
 async def get_userinformation(request:Request,current_user: dict =Depends(get_current_user)):
     return current_user
-
 # 보호된 경로 : 미들웨어로 카카오 로그인 인증해야 접속 가능한 경로
 @app.get("/protected")
 async def protected_route(current_user: dict = Depends(get_current_user)):
     return {"message": f"환영합니다, {current_user['user_nickname']}님!"}
 
+# 테스트용
+sio = socketio.AsyncServer(async_mode='asgi',cors_allowed_origins=origins) #socketio 서버 생성
+app = socketio.ASGIApp(sio, app) #메인 서버와 socketio서버 통합
+
+@sio.on('message')
+async def send_message(sid, data):
+    room = data.get("room_code")
+    message = data.get("message")
+    sessionid = socket_session_data[sid]['sessionid']
+    if (not sessionid) or (not (sessionid in session_data.keys())):
+        print("Invalid or expired token")
+        await sio.emit("redirect", {"url": "/login"}, room=room)
+        return
+    user_id = get_user_by_sessionid(sessionid)['user_id']
+    user_nickname = get_user_by_sessionid(sessionid)['user_nickname']
+    await sio.emit("receive_message", {
+        "user_id": user_id,
+        "message": message,
+        "user_nickname":user_nickname
+    }, room=room)
+    return
+@sio.event
+async def connect(sid, environ, auth):
+    try:
+        room = auth.get("room")  # room 정보 가져오기
+        cookies = parse_cookie(environ.get('HTTP_COOKIE'))
+        sessionid = cookies.get('sessionid')
+        session_data[sessionid]['sid'] = sid
+        socket_session_data[sid] = {'sessionid':sessionid}
+    except:
+        await sio.disconnect(sid)
+    try:
+        payload = get_user_by_sessionid(sessionid)
+        del payload['user_create']
+        del payload['user_update']
+        if cookies and sessionid:
+            if room:  # room 정보가 있으면 클라이언트를 해당 room에 참여시킴
+                await sio.enter_room(sid, room)
+                await sio.emit("connect_success", data={"user": payload, "message": f"Connected to room {room}!", "sessionid": sessionid}, room=sid)
+            else: # room 정보가 없는 곳 접속
+                await sio.emit("redirect", {"url": "/"}, room=room)
+        else:
+            print("Unauthorized connection attempt.")
+            await sio.disconnect(sid)
+    except Exception as e:
+        print(e)
+        await sio.emit("refresh", room=sid) 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ['BACKEND_PORT'])) # 서버용
