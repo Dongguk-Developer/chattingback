@@ -15,14 +15,38 @@ import logging
 import httpx
 import time
 import random
-from db_util import user_table,planner
+from db_util import calender
+from db_util import chatting_room
+from db_util import hashtag
+from db_util import kakao_api
+from db_util import message_image,message_read,message_text,message_video,message_voice,message
+from db_util import planner
+from db_util import profile_image
+from db_util import room_users
+from db_util import user_table
+import sys
+DEV_MODE = True
 
-BACK_URL = "https://api.studyhero.kr"
-FRONT_URL = "https://studyhero.kr"
+
+BACK_URL = ""
+FRONT_URL = ""
+if DEV_MODE:
+    BACK_URL = "http://localhost:8090"
+    FRONT_URL = "http://localhost:3000"
+else:
+    BACK_URL = "https://api.studyhero.kr"
+    FRONT_URL = "https://studyhero.kr"
 
 KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize"
 KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token"
 KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me"
+
+if DEV_MODE:
+    os.environ['KAKAO_REDIRECT_URI']=''
+    os.environ['KAKAO_CLIENT_ID']=''
+    os.environ['KAKAO_CLIENT_SECRET']=''
+    os.environ['JWT_SECRET']=''
+    os.environ['BACKEND_PORT']='8090'
 
 KAKAO_REDIRECT_URI = os.environ['KAKAO_REDIRECT_URI']
 KAKAO_CLIENT_ID = os.environ['KAKAO_CLIENT_ID']
@@ -35,7 +59,22 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 session_data = {}
 socket_session_data = {}
+SWAGGER_HEADERS = {
+    "title": "SWAGGER UI 변경 테스트",
+    "version": "100.100.100",
+    "description": "## SWAGGER 문서 변경 \n - swagger 문서를 변경해보는 테스트입니다. \n - 테스트 1234 \n - 테스트 5678",
+    "contact": {
+        "name": "CHAECHAE",
+        "url": "https://chaechae.life",
+        "email": "chaechae.couple@gmail.com",
+        "license_info": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT",
+        },
+    },
+}
 async def get_current_user(request: Request):
+    return {"user_id":2032376189}
     sessionid = request.cookies.get("sessionid")
     
     if sessionid==None or not sessionid in session_data.keys():
@@ -70,14 +109,6 @@ def verify_access_token(token: str):
         return payload
     except JWTError as e:
         return e
-def verify_message_token(token: str):
-    if token=="":
-        return None
-    try:
-        payload = jwt.decode(token=token,key= JWT_SECRET, algorithms=[ALGORITHM])
-        return payload
-    except JWTError as e:
-        return e
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     if expires_delta:
@@ -86,16 +117,6 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, KAKAO_CLIENT_SECRET, algorithm=ALGORITHM)
-    return encoded_jwt
-def create_message_token(data: dict, expires_delta: timedelta = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=30)
-    to_encode.update({"exp": expire})
-    # to_encode.update({"nickname": })
-    encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
     return encoded_jwt
 def refresh_access_token(refresh_token):
     grant_type = "refresh_token"
@@ -135,10 +156,19 @@ def parse_cookie(data):
         pass
     return result
 origins = [
-    "https://api.studyhero.kr",
-    "https://studyhero.kr",
+    BACK_URL,
+    FRONT_URL,
 ]
-app = FastAPI()
+app = FastAPI(swagger_ui_parameters={
+        "deepLinking": True,
+        "displayRequestDuration": True,
+        "docExpansion": "none",
+        "operationsSorter": "method",
+        "filter": True,
+        "tagsSorter": "alpha",
+        "syntaxHighlight.theme": "tomorrow-night",
+    },
+    **SWAGGER_HEADERS)
 logging.basicConfig(level=logging.INFO)
 
 # CORS 미들웨어 추가
@@ -150,10 +180,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+def get_user_by_sessionid(sessionid):
+    
+    if not sessionid in session_data.keys():
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    user_id = session_data[sessionid]['user_id']
+    user = user_table.get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
+    return user
+    
 @app.get("/")
 def read_root():
     return "StudyHero"
+@app.post("/test")
+def test_root():
+    return {"data":"StudyHero"}
 # 유저 객체를 전달함
 @app.post("/profile/get")
 async def get_profile(request: Request,current_user:dict=Depends(get_current_user)):
@@ -168,9 +210,7 @@ async def get_profile(request: Request,current_user:dict=Depends(get_current_use
 @app.post("/profile/update")
 async def update_profile(request: Request,current_user:dict=Depends(get_current_user)):
     try:
-
-        # current_user = {"user_id":2032376189} # Depends 종속성 추가 필요
-        # user_id = current_user.user_id
+        user_id = current_user['user_id']
         request_data = await request.form()
 
         mbti = request_data['mbti']
@@ -179,7 +219,6 @@ async def update_profile(request: Request,current_user:dict=Depends(get_current_
         job = request_data['job']
         studyfield = request_data['studyfield']
         xp = request_data['xp']
-        print(mbti,name,age,job,studyfield,xp)
         if 'profile_image' in request_data.keys() and request_data['profile_image']:
             file = request_data['profile_image']
             profile_image_path = f"./static/{current_user.user_id}/profile_picture/"+file.filename
@@ -191,7 +230,7 @@ async def update_profile(request: Request,current_user:dict=Depends(get_current_
                 f.write(file.file.read())
         else:
             file = None
-        update_result = user_table.update_user(user_id=current_user["user_id"],user_nickname=name,user_xp=xp,user_age=age,user_mbti=mbti,user_job=job,user_stuty_field=studyfield)
+        update_result = user_table.update_user(user_id=user_id,user_nickname=name,user_xp=xp,user_age=age,user_mbti=mbti,user_job=job,user_stuty_field=studyfield)
         if update_result==None:
             return Response(content="update fail 206",status_code=400)
         else:
@@ -202,16 +241,20 @@ async def update_profile(request: Request,current_user:dict=Depends(get_current_
 
 
 @app.post("/ranking/get")
-def get_ranking():
+def get_ranking(request:Request,current_user:dict=Depends(get_current_user)):
     pass
+
 @app.post("/chatroom/create")
-def create_chatroom():
+def create_chatroom(request:Request,current_user:dict=Depends(get_current_user)):
     pass
 @app.post("/chatroom/update")
-def update_chatroom():
+def update_chatroom(request:Request,current_user:dict=Depends(get_current_user)):
     pass
 @app.post("/chatroom/get")
-def get_chatroom():
+def get_chatroom(request:Request,current_user:dict=Depends(get_current_user)):
+    pass
+@app.post("/chatroom/get")
+def delete_chatroom(request:Request,current_user:dict=Depends(get_current_user)):
     pass
 
 @app.post("/emoji/create")
@@ -221,68 +264,123 @@ def create_emoji():
 def get_emoji():
     pass
 
+# 캘린더, 플래너 crud
+@app.post("/studyplanner/get")
+async def get_studyplanner(request:Request,current_user:dict=Depends(get_current_user)):
+    user_id = current_user['user_id']
+    request_data = await request.form()
+    planner_id = request_data['planner_id']
 
+    return planner.get_planner_by_id(planner_id=planner_id)
 # 캘린더, 플래너 crud
 @app.post("/studyplanner/create")
-async def create_studyplanner(request:Request):
-    current_user=None
-    user_id = current_user
-    request_data = await request.form()
+async def create_studyplanner(request:Request,current_user:dict=Depends(get_current_user)):
+    try:
+        user_id = current_user['user_id']
+        request_data = await request.form()
 
-    planner_id = request_data['planner_id']
-    planner_date = request_data['planner_date']
-    planner_schedule_name = request_data['planner_schedule_name']
-    planner_schedule_status = request_data['planner_schedule_status']
-    planner.create_planner(planner_id=planner_id,user_id=2032376189,planner_date=datetime.today(),planner_schedule_name="test",planner_schedule_status="good")
-    print()
-
-    # planner_id 고유 번호
-    # user_id 외래키
-    # planner_date 플래너 일자
-    # planner_schedule_name 일정 이름
-    # planner_schedule_status 일정 진행 상태
-    
-
-    return "good"
+        planner_id = request_data['planner_id']
+        planner_date = request_data['planner_date']
+        planner_schedule_name = request_data['planner_schedule_name']
+        planner_schedule_status = request_data['planner_schedule_status']
+        planner.create_planner(planner_id=planner_id,user_id=user_id,planner_date=datetime.today(),planner_schedule_name=planner_schedule_name,planner_schedule_status=planner_schedule_status)
+        return Response(content="Studyplanner Created Successfully",status_code=201)
+    except:
+        return Response(content="Studyplanner Create Something Wrong",status_code=417)
 @app.post("/studyplanner/update")
-# async def create_studyplanner(request:Request,current_user: dict =Depends(get_current_user)):
-async def create_studyplanner(request:Request):
-    current_user = None
-    request_data = await request.form()
-    planner_id = request_data['planner_id']
-    planner_date = request_data['planner_date']
-    planner_schedule_name = request_data['planner_schedule_name']
-    planner_schedule_status = request_data['planner_schedule_status']
-    planner.update_planner(planner_id=planner_id,planner_date=datetime.today(),planner_schedule_name=planner_schedule_name,planner_schedule_status=planner_schedule_status)
-    return "good"
+async def update_studyplanner(request:Request,current_user: dict=Depends(get_current_user)):
+    try:
+        request_data = await request.form()
+        planner_id = request_data['planner_id']
+        planner_date = request_data['planner_date']
+        planner_schedule_name = request_data['planner_schedule_name']
+        planner_schedule_status = request_data['planner_schedule_status']
+        planner.update_planner(planner_id=planner_id,planner_date=datetime.strptime(planner_date,"%Y-%m-%d").date(),planner_schedule_name=planner_schedule_name,planner_schedule_status=planner_schedule_status)
+        return Response(content="Studyplanner Updated Successfully",status_code=201)
+    except:
+        return Response(content="Studyplanner Update Something Wrong",status_code=417)
 @app.post("/studyplanner/delete")
-# async def delete_studyplanner(request:Request,current_user: dict =Depends(get_current_user)):
-async def delete_studyplanner(request:Request):
-    current_user = None
-    request_data = await request.form()
-    planner_id = request_data['planner_id']
-    # planner_date = request_data['planner_date']
-    # planner_schedule_name = request_data['planner_schedule_name']
-    # planner_schedule_status = request_data['planner_schedule_status']
-    planner.delete_planner(planner_id=planner_id)
-    return "good"
+async def delete_studyplanner(request:Request,current_user: dict =Depends(get_current_user)):
+    try:
+        request_data = await request.form()
+        planner_id = request_data['planner_id']
+        planner.delete_planner(planner_id=planner_id)
+        return Response(content="Studyplanner Deleted Successfully",status_code=200)
+    except:
+        return Response(content="Studyplanner Delete Something Wrong",status_code=417)
 
 @app.post("/calender/create")
-def create_calender(request:Request,current_user: dict =Depends(get_current_user)):
-    calender_id = ""
-    pass
+async def create_calender(request:Request,current_user: dict =Depends(get_current_user)):
+    try:
+        request_data = await request.form()
+        planner_id = request_data['planner_id']
+        planner.delete_planner(planner_id=planner_id)
+        return Response(content="Studyplanner Deleted Successfully",status_code=200)
+    except:
+        return Response(content="Studyplanner Delete Something Wrong",status_code=417)
 @app.post("/calender/update")
-def update_calender(request:Request,current_user: dict =Depends(get_current_user)):
-    calender_id = ""
-    pass
+async def update_calender(request:Request,current_user: dict =Depends(get_current_user)):
+    try:
+        request_data = await request.form()
+        planner_id = request_data['planner_id']
+        planner.delete_planner(planner_id=planner_id)
+        return Response(content="Studyplanner Deleted Successfully",status_code=200)
+    except:
+        return Response(content="Studyplanner Delete Something Wrong",status_code=417)
 @app.post("/calender/delete")
-def delete_calender(request:Request,current_user: dict =Depends(get_current_user)):
-    calender_id = ""
-    pass
-sio = socketio.AsyncServer(async_mode='asgi')#socketio 서버 생성
-app = socketio.ASGIApp(sio, app)#메인 서버와 socketio서버 통합
-@sio.on('test')#test 이벤트에 대한 처리
-def another_event(sid, data):
-    print(sid,data)
+async def delete_calender(request:Request,current_user: dict =Depends(get_current_user)):
+    try:
+        request_data = await request.form()
+        planner_id = request_data['planner_id']
+        planner.delete_planner(planner_id=planner_id)
+        return Response(content="Studyplanner Deleted Successfully",status_code=200)
+    except:
+        return Response(content="Studyplanner Delete Something Wrong",status_code=417)
+sio = socketio.AsyncServer(async_mode='asgi',cors_allowed_origins=origins) #socketio 서버 생성
+app = socketio.ASGIApp(sio, app) #메인 서버와 socketio서버 통합
+
+@sio.on('message')
+async def send_message(sid, data):
+    room = data.get("room_code")
+    message = data.get("message")
+    sessionid = socket_session_data[sid]['sessionid']
+    if (not sessionid) or (not (sessionid in session_data.keys())):
+        print("Invalid or expired token")
+        await sio.emit("redirect", {"url": "/login"}, room=room)
+        return
+    user_id = get_user_by_sessionid(sessionid)['user_id']
+    user_nickname = get_user_by_sessionid(sessionid)['user_nickname']
+    await sio.emit("receive_message", {
+        "user_id": user_id,
+        "message": message,
+        "user_nickname":user_nickname
+    }, room=room)
+    return
+@sio.event
+async def connect(sid, environ, auth):
+    try:
+        room = auth.get("room")  # room 정보 가져오기
+        cookies = parse_cookie(environ.get('HTTP_COOKIE'))
+        sessionid = cookies.get('sessionid')
+        session_data[sessionid]['sid'] = sid
+        socket_session_data[sid] = {'sessionid':sessionid}
+    except:
+        await sio.disconnect(sid)
+    try:
+        payload = get_user_by_sessionid(sessionid)
+        del payload['user_create']
+        del payload['user_update']
+        if cookies and sessionid:
+            if room:  # room 정보가 있으면 클라이언트를 해당 room에 참여시킴
+                await sio.enter_room(sid, room)
+                await sio.emit("connect_success", data={"user": payload, "message": f"Connected to room {room}!", "sessionid": sessionid}, room=sid)
+            else: # room 정보가 없는 곳 접속
+                await sio.emit("redirect", {"url": "/"}, room=room)
+        else:
+            print("Unauthorized connection attempt.")
+            await sio.disconnect(sid)
+    except Exception as e:
+        print(e)
+        await sio.emit("refresh", room=sid) 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ['BACKEND_PORT']),reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ['BACKEND_PORT']),reload=DEV_MODE)
