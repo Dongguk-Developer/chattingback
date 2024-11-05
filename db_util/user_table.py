@@ -40,57 +40,52 @@ class User(Base):
                 f"user_mbti='{self.user_mbti}', user_job='{self.user_job}', user_stuty_field='{self.user_stuty_field}')>")
 
 def create_user(k_id, profile_image_id, user_nickname, user_xp, user_PI_argree, user_age, user_mbti=None, user_job=None, user_stuty_field=None):
-    session = SessionLocal()
-    try:
-        new_user = User(
-            k_id=k_id,
-            profile_image_id=profile_image_id,
-            user_nickname=user_nickname,
-            user_xp=user_xp,
-            user_PI_argree=user_PI_argree,
-            user_create=datetime.utcnow(),
-            user_update=datetime.utcnow(),
-            user_age=user_age,
-            user_mbti=user_mbti,
-            user_job=user_job,
-            user_stuty_field=user_stuty_field
-        )
-        session.add(new_user)
-        session.commit()
-        session.refresh(new_user)
-        print(f"User created with ID: {new_user.user_id}")
-        return new_user
-    except IntegrityError as e:
-        session.rollback()
-        print("Error: Integrity constraint violated.", e)
-    finally:
-        session.close()
+    with SessionLocal() as session:
+        try:
+            new_user = User(
+                k_id=k_id,
+                profile_image_id=profile_image_id,
+                user_nickname=user_nickname,
+                user_xp=user_xp,
+                user_PI_argree=user_PI_argree,
+                user_create=datetime.utcnow(),
+                user_update=datetime.utcnow(),
+                user_age=user_age,
+                user_mbti=user_mbti,
+                user_job=user_job,
+                user_stuty_field=user_stuty_field
+            )
+            session.add(new_user)
+            session.commit()
+            session.refresh(new_user)
+            print(f"User created with ID: {new_user.user_id}")
+            return new_user
+        except IntegrityError as e:
+            session.rollback()
+            print("Error: Integrity constraint violated.", e)
+        finally:
+            session.close()
 
 def get_all_users():
-    session = SessionLocal()
-    try:
+    with SessionLocal() as session:
         users = session.query(User).all()
         for user in users:
             print(user)
         return users
-    finally:
-        session.close()
+
 
 def get_user_by_id(user_id):
-    session = SessionLocal()
-    try:
+    with SessionLocal() as session:
         user = session.query(User).filter(User.user_id == user_id).first()
         if user:
             print(f"User found: {user}")
         else:
             print("User not found.")
         return user
-    finally:
-        session.close()
+
 
 def update_user(user_id, user_nickname=None, user_xp=None, user_PI_argree=None, user_age=None, user_mbti=None, user_job=None, user_stuty_field=None):
-    session = SessionLocal()
-    try:
+    with SessionLocal() as session:
         user = session.query(User).filter(User.user_id == user_id).first()
         if user:
             if user_nickname is not None:
@@ -114,12 +109,10 @@ def update_user(user_id, user_nickname=None, user_xp=None, user_PI_argree=None, 
             return user
         else:
             print("User not found.")
-    finally:
-        session.close()
+
 
 def delete_user(user_id):
-    session = SessionLocal()
-    try:
+    with SessionLocal() as session:
         user = session.query(User).filter(User.user_id == user_id).first()
         if user:
             session.delete(user)
@@ -129,8 +122,7 @@ def delete_user(user_id):
         else:
             print("User not found.")
             return False
-    finally:
-        session.close()
+
 """
 # Create a new user
 new_user = create_user(

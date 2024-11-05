@@ -37,7 +37,7 @@ class KakaoAPI(Base):
 
 # Create (Insert) a new KakaoAPI record
 def create_kakao_api(kakao_data):
-    with SessionLocal() as db:
+    with SessionLocal() as session:
         db_kakao = KakaoAPI(
             kakao_id=kakao_data["kakao_id"],
             kakao_name=kakao_data["kakao_name"],
@@ -50,24 +50,24 @@ def create_kakao_api(kakao_data):
             kakao_refresh_token=kakao_data["kakao_refresh_token"],
             kakao_access_token=kakao_data["kakao_access_token"]
         )
-        db.add(db_kakao)
+        session.add(db_kakao)
         try:
-            db.commit()
-            db.refresh(db_kakao)
+            session.commit()
+            session.refresh(db_kakao)
             return db_kakao
         except IntegrityError:
-            db.rollback()
+            session.rollback()
             raise
 
 # Read (Retrieve) a KakaoAPI record by ID
 def get_kakao_api_by_id(k_id: int):
-    with SessionLocal() as db:
-        return db.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
+    with SessionLocal() as session:
+        return session.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
 
 # Update an existing KakaoAPI record
 def update_kakao_api(k_id: int, updated_data):
-    with SessionLocal() as db:
-        db_kakao = db.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
+    with SessionLocal() as session:
+        db_kakao = session.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
         if db_kakao:
             db_kakao.kakao_name = updated_data.get("kakao_name", db_kakao.kakao_name)
             db_kakao.kakao_tell = updated_data.get("kakao_tell", db_kakao.kakao_tell)
@@ -78,19 +78,19 @@ def update_kakao_api(k_id: int, updated_data):
             db_kakao.kakao_refresh_token = updated_data.get("kakao_refresh_token", db_kakao.kakao_refresh_token)
             db_kakao.kakao_access_token = updated_data.get("kakao_access_token", db_kakao.kakao_access_token)
             
-            db.commit()
-            db.refresh(db_kakao)
+            session.commit()
+            session.refresh(db_kakao)
             return db_kakao
         else:
             return None
 
 # Delete a KakaoAPI record
 def delete_kakao_api(k_id: int):
-    with SessionLocal() as db:
-        db_kakao = db.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
+    with SessionLocal() as session:
+        db_kakao = session.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
         if db_kakao:
-            db.delete(db_kakao)
-            db.commit()
+            session.delete(db_kakao)
+            session.commit()
             return True
         return False
 
