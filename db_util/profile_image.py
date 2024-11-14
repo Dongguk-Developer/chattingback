@@ -7,36 +7,21 @@ import enum
 from urllib.parse import quote_plus
 from datetime import datetime
 from db_util.db_session import SessionLocal
-
+from .models import ProfileImage
 
 
 Base = declarative_base()
 
 
 
-class ProfileImageTargetEnum(enum.Enum):
-    chattingroom = "chattingroom"
-    user = "user"
 
-class ProfileImage(Base):
-    __tablename__ = 'proflie_image'
-    
-    profile_image_id = Column(Integer, primary_key=True, autoincrement=True)
-    profile_image_target = Column(Enum(ProfileImageTargetEnum), nullable=False)
-    target_id = Column(BigInteger, nullable=False)
-    profile_image_url = Column(String(255, collation='utf8mb4_general_ci'), nullable=False)
-    profile_image_create = Column(String(255, collation='utf8mb4_general_ci'), nullable=False)
-
-    def __repr__(self):
-        return (f"<ProfileImage(profile_image_id={self.profile_image_id}, "
-                f"profile_image_target={self.profile_image_target}, target_id={self.target_id}, "
-                f"profile_image_url='{self.profile_image_url}', profile_image_create='{self.profile_image_create}')>")
 
 # Create a new ProfileImage
-def create_profile_image(profile_image_target, target_id, profile_image_url, profile_image_create):
+def create_profile_image(profile_image_id,profile_image_target, target_id, profile_image_url, profile_image_create):
     with SessionLocal() as session:
         try:
             new_profile_image = ProfileImage(
+                profile_image_id=profile_image_id,
                 profile_image_target=profile_image_target,
                 target_id=target_id,
                 profile_image_url=profile_image_url,
@@ -57,12 +42,19 @@ def create_profile_image(profile_image_target, target_id, profile_image_url, pro
 # Read ProfileImage by ID
 def get_profile_image_by_id(profile_image_id: int):
     with SessionLocal() as session:
-        profile_image = session.query(ProfileImage).filter(ProfileImage.profile_image_id == profile_image_id).first()
-        if profile_image:
-            return profile_image
-        else:
-            print(f"ProfileImage with id {profile_image_id} not found.")
-            return None
+        try:
+            profile_image = session.query(ProfileImage).filter(ProfileImage.profile_image_id == profile_image_id).first()
+            if profile_image:
+                return profile_image
+            else:
+                print(f"ProfileImage with id {profile_image_id} not found.")
+                return None
+        except IntegrityError as e:
+            session.rollback()
+            print("IntegrityError occurred:", e)
+        except Exception as e:
+            session.rollback()
+            print("Error occurred:", e)
 
 # Update ProfileImage
 def update_profile_image(profile_image_id: int, **kwargs):

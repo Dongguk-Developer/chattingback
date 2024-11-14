@@ -8,47 +8,37 @@ import enum
 from urllib.parse import quote_plus
 from datetime import datetime
 from db_util.db_session import SessionLocal
-
+from .models import KakaoAPI
 Base = declarative_base()
 
-
-class KakaoAPI(Base):
-    __tablename__ = 'kakao_api'
-    
-    k_id = Column(BigInteger, primary_key=True, autoincrement=True)
-    kakao_id = Column(BigInteger, nullable=False)
-    kakao_name = Column(String(45, collation='utf8mb4_general_ci'), nullable=False)
-    kakao_tell = Column(String(45, collation='utf8mb4_general_ci'), nullable=False)
-    kakao_email = Column(String(45, collation='utf8mb4_general_ci'), nullable=False)
-    kakao_birth = Column(Integer, nullable=False)
-    kakao_create = Column(DateTime, default=None)
-    kakao_update = Column(DateTime, default=None)
-    kakao_image = Column(String(255, collation='utf8mb4_general_ci'), default=None)
-    kakao_refresh_token = Column(String(255, collation='utf8mb4_general_ci'), nullable=False)
-    kakao_access_token = Column(String(255, collation='utf8mb4_general_ci'), nullable=False)
-
-    def __repr__(self):
-        return (f"<KakaoAPI(k_id={self.k_id}, kakao_id={self.kakao_id}, kakao_name='{self.kakao_name}', "
-                f"kakao_tell='{self.kakao_tell}', kakao_email='{self.kakao_email}', kakao_birth={self.kakao_birth}, "
-                f"kakao_create={self.kakao_create}, kakao_update={self.kakao_update}, kakao_image='{self.kakao_image}', "
-                f"kakao_refresh_token='{self.kakao_refresh_token}', kakao_access_token='{self.kakao_access_token}')>")
 
 
 
 # Create (Insert) a new KakaoAPI record
-def create_kakao_api(kakao_data):
+def create_kakao_api(k_id,
+            kakao_id,
+            kakao_name,
+            kakao_tell,
+            kakao_email,
+            kakao_birth,
+            kakao_create,
+            kakao_update,
+            kakao_image,
+            kakao_refresh_token,
+            kakao_access_token):
     with SessionLocal() as session:
         db_kakao = KakaoAPI(
-            kakao_id=kakao_data["kakao_id"],
-            kakao_name=kakao_data["kakao_name"],
-            kakao_tell=kakao_data["kakao_tell"],
-            kakao_email=kakao_data["kakao_email"],
-            kakao_birth=kakao_data["kakao_birth"],
-            kakao_create=datetime.utcnow(),
-            kakao_update=datetime.utcnow(),
-            kakao_image=kakao_data.get("kakao_image"),
-            kakao_refresh_token=kakao_data["kakao_refresh_token"],
-            kakao_access_token=kakao_data["kakao_access_token"]
+            k_id=k_id,
+            kakao_id=kakao_id,
+            kakao_name=kakao_id,
+            kakao_tell=kakao_tell,
+            kakao_email=kakao_email,
+            kakao_birth=kakao_birth,
+            kakao_create=kakao_create,
+            kakao_update=kakao_update,
+            kakao_image=kakao_image,
+            kakao_refresh_token=kakao_refresh_token,
+            kakao_access_token=kakao_access_token
         )
         session.add(db_kakao)
         try:
@@ -63,7 +53,9 @@ def create_kakao_api(kakao_data):
 def get_kakao_api_by_id(k_id: int):
     with SessionLocal() as session:
         return session.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
-
+def get_kakao_api_by_user_id(user_id: int):
+    with SessionLocal() as session:
+        return session.query(KakaoAPI).filter(KakaoAPI.kakao_id == user_id).first()
 # Update an existing KakaoAPI record
 def update_kakao_api(k_id: int, updated_data):
     with SessionLocal() as session:

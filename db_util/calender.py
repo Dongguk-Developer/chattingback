@@ -9,23 +9,13 @@ from datetime import datetime
 import enum
 from db_util.db_session import SessionLocal
 from datetime import date
+from .models import Calendar
 
 
 
 
 Base = declarative_base()
-class Calendar(Base):
-    __tablename__ = 'calender'
 
-    calender_id = Column(Integer, primary_key=True, nullable=False)
-    user_id = Column(BigInteger, ForeignKey('users.user_id'), nullable=False)
-    calender_date_start = Column(Date, nullable=False)
-    calender_date_finish = Column(Date, nullable=False)
-    calender_schedule_name = Column(String(60), nullable=False)
-    calender_schedule_memo = Column(String(60), nullable=True)
-
-    # Relationship with the `User` table if you have a User class
-    user = relationship("User", back_populates="calendars")
 def create_calendar(user_id: int, start_date: date, finish_date: date, name: str, memo: str = None):
     with SessionLocal() as session:
         new_calendar = Calendar(

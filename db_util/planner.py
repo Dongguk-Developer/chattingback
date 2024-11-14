@@ -4,16 +4,8 @@ from sqlalchemy.ext.declarative import declarative_base
 from db_util.db_session import SessionLocal
 from db_util.user_table import User
 from datetime import date
-
+from .models import Planner
 Base = declarative_base()
-class Planner(Base):
-    __tablename__ = 'planner'
-
-    planner_id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey(User.user_id), nullable=False)
-    planner_date = Column(Date, nullable=False)
-    planner_schedule_name = Column(String(60), nullable=False)  # charset, collation 제거
-    planner_schedule_status = Column(String(45), nullable=True)  # charset, collation 제거
 
     # 관계 설정 (필요한 경우)
     # user = relationship("User", back_populates="planners")

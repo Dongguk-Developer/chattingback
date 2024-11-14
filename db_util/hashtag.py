@@ -4,20 +4,8 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.exc import IntegrityError
+from .models import Hashtag
 Base = declarative_base()
-
-class Hashtag(Base):
-    __tablename__ = 'hashtag'
-
-    hashtag_id = Column(Integer, primary_key=True, autoincrement=True)
-    room_id = Column(Integer, ForeignKey('chatting_room.room_id'), nullable=False)
-    tag = Column(String(255), nullable=False)
-
-    # Relationship back to ChattingRoom
-    chatting_room = relationship("ChattingRoom", back_populates="hashtags")
-
-    def __repr__(self):
-        return f"<Hashtag(hashtag_id={self.hashtag_id}, room_id={self.room_id}, tag='{self.tag}')>"
 
 
 
