@@ -1,33 +1,26 @@
 from db_util.db_session import SessionLocal
-
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.exc import IntegrityError
-from .models import Hashtag
+from .models import Hashtag,ChattingRoom
 Base = declarative_base()
 
-
-
-# Create (Insert) a new Hashtag record
-def create_hashtag(room_id: int, tag: str):
-    with SessionLocal() as session:
-        hashtag = Hashtag(room_id=room_id, tag=tag)
-        session.add(hashtag)
-        try:
+def create_hashtag(hashtag_id:int,room_id: int, tag: str):
+    try:
+        with SessionLocal() as session:
+            room_exists = session.query(ChattingRoom).filter_by(room_id=room_id).first()
+            if not room_exists:
+                raise ValueError(f"Room with id {room_id} does not exist in `chatting_room` table.")
+            hashtag = Hashtag(hashtag_id=hashtag_id,room_id=room_id, hashtag_title=tag)
+            session.add(hashtag)
             session.commit()
             session.refresh(hashtag)
             return hashtag
-        except IntegrityError:
-            session.rollback()
-            raise
+    except Exception as e:
+        raise e
 
-# Read (Retrieve) a Hashtag record by ID
 def get_hashtag_by_id(hashtag_id: int):
     with SessionLocal() as session:
         return session.query(Hashtag).filter(Hashtag.hashtag_id == hashtag_id).first()
 
-# Update an existing Hashtag record
 def update_hashtag(hashtag_id: int, new_tag: str):
     with SessionLocal() as session:
         hashtag = session.query(Hashtag).filter(Hashtag.hashtag_id == hashtag_id).first()
@@ -39,7 +32,6 @@ def update_hashtag(hashtag_id: int, new_tag: str):
         else:
             return None
 
-# Delete a Hashtag record
 def delete_hashtag(hashtag_id: int):
     with SessionLocal() as session:
         hashtag = session.query(Hashtag).filter(Hashtag.hashtag_id == hashtag_id).first()

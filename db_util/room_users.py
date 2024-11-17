@@ -1,80 +1,7 @@
-# from . import connect
-from sqlalchemy import create_engine, Column, Integer, String,BigInteger,Enum,DateTime,ForeignKey, TIMESTAMP
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
-import enum
-from urllib.parse import quote_plus
-from datetime import datetime
+from sqlalchemy.orm import joinedload
 from db_util.db_session import SessionLocal
-from sqlalchemy import Column, Integer, BigInteger, ForeignKey
-from sqlalchemy.orm import relationship
-from .models import RoomUser,ChattingRoom,User,Hashtag
+from .models import RoomUser,ChattingRoom,User,Hashtag,Message,MessageText
 
-
-
-def get_user_chatrooms_with_hashtag(user_id):
-    with SessionLocal() as session:
-        try:
-
-            join_query = (
-                session.query(RoomUser, Hashtag)
-                .outerjoin(ProfileImage, RoomUser.room_id == Hashtag.room_id)
-                .filter(or_(ProfileImage.profile_image_id.isnot(None), User.user_id == user_id))
-            )
-
-            result = join_query.order_by(asc(ProfileImage.profile_image_create)).first()
-            profile_image, user = result  # 튜플 언패킹
-            print(result)
-            result_dict = {
-                "profile_image": {
-                    "profile_image_id": profile_image.profile_image_id,
-                    "profile_image_target": profile_image.profile_image_target.value,
-                    "target_id": profile_image.target_id,
-                    "profile_image_url": profile_image.profile_image_url,
-                    "profile_image_create": str(profile_image.profile_image_create),
-                } if profile_image else None,
-                "user": {
-                    "user_id": user.user_id,
-                    "k_id": user.k_id,
-                    "profile_image_id": user.profile_image_id,
-                    "user_nickname": user.user_nickname,
-                    "user_xp": user.user_xp,
-                    "user_PI_argree": user.user_PI_argree,
-                    "user_create": str(user.user_create),
-                    "user_update": str(user.user_update),
-                    "user_age": user.user_age,
-                    "user_mbti": user.user_mbti,
-                    "user_job": user.user_job,
-                    "user_study_field": user.user_study_field,
-                } if user else None
-            }
-
-            # 필요없는 필드 삭제
-            # if "user" in result_dict:
-            #     result_dict["profile_image"].pop("profile_image_id", None)
-            #     result_dict["profile_image"].pop("profile_image_target", None)
-            #     result_dict["profile_image"].pop("target_id", None)
-            #     result_dict["profile_image"].pop("profile_image_create", None)
-            #     result_dict["user"].pop("k_id", None)
-            #     result_dict["user"].pop("profile_image_id", None)
-            #     result_dict["user"].pop("user_xp", None)
-            #     result_dict["user"].pop("user_PI_argree", None)
-            #     result_dict["user"].pop("user_create", None)
-            #     result_dict["user"].pop("user_update", None)
-            result = result_dict
-            if result:
-                return result
-            else:
-                return None
-        except IntegrityError as e:
-            session.rollback()
-            print("IntegrityError occurred:", e)
-        except Exception as e:
-            session.rollback()
-            print("Error occurred:", e)
-# Create (방에 유저 추가)
 def create_room_user(room_id: int, user_id: int):
     with SessionLocal() as session:
         db_room_user = RoomUser(room_id=room_id, user_id=user_id)
@@ -83,17 +10,109 @@ def create_room_user(room_id: int, user_id: int):
         session.refresh(db_room_user)
         return db_room_user
 
-# Read (특정 방의 모든 유저 조회)
 def get_users_in_room(room_id: int):
     with SessionLocal() as session:
         return session.query(RoomUser).filter(RoomUser.room_id == room_id).all()
+def get_hashtags_by_room_id(room_id: int):
+    with SessionLocal() as session:
+        return [i.hashtag_title for i in session.query(Hashtag).filter(Hashtag.room_id == room_id).all()]
+def get_room_by_room_id(room_id:int):
+    with SessionLocal() as session:
+        
+        return {"room":session.query(ChattingRoom).filter(ChattingRoom.room_id == room_id).one(),"hashtags":get_hashtags_by_room_id(room_id)}
+def test(room_id:int):
+    with SessionLocal() as session:
+        chats = (
+            session.query(Message)
+            .filter(Message.room_id == room_id)
+            .options(
+                joinedload(Message.user)
+                .joinedload(User.profile_image)
+            )
+            .all()
+        )
 
-# Read (특정 유저가 참여한 모든 방 조회)
+        chat_data = []
+        for chat in chats:
+            message_text = (
+                session.query(MessageText)
+                .filter(MessageText.message_id == chat.message_id)
+                .first()
+            )
+
+            chat_data.append({
+                "message_id": chat.message_id,
+                "room_id": chat.room_id,
+                "user": {
+                    "user_id": chat.user.user_id,
+                    "user_nickname": chat.user.user_nickname,
+                    "user_xp": chat.user.user_xp,
+                    "user_mbti": chat.user.user_mbti,
+                    "user_job": chat.user.user_job,
+                    "user_study_field": chat.user.user_study_field,
+                },
+                "profile_image": {
+                    "profile_image_url": chat.user.profile_image.profile_image_url,
+                },
+                "message": message_text.message_text if message_text else None,
+                "message_create": chat.message_create,
+                "message_delete": chat.message_delete,
+            })
+
+        return chat_data
+def get_chat_by_room_id(room_id:int):
+    with SessionLocal() as session:
+        chats = (
+            session.query(Message)
+            .filter(Message.room_id == room_id)
+            .filter(MessageText.message_id == chat.message_id)
+            .options(
+                joinedload(Message.user)
+                .joinedload(User.profile_image)
+                .joinedload(MessageText.message_text)
+                
+            )
+            .all()
+        )
+        chat_data = []
+        for chat in chats:
+            chat_data.append({
+                "message_id": chat.message_id,
+                "room_id": chat.room_id,
+                "user": {
+                    "user_id": chat.user.user_id,
+                    "user_nickname": chat.user.user_nickname,
+                    "user_xp": chat.user.user_xp,
+                    "user_mbti": chat.user.user_mbti,
+                    "user_job": chat.user.user_job,
+                    "user_study_field": chat.user.user_study_field,
+                },
+                "profile_image": {
+                    "profile_image_url": chat.user.profile_image.profile_image_url,
+                },
+                "message": chat.message_text,
+                "message_create": chat.message_create,
+                "message_delete": chat.message_delete,
+            })
+        return chat_data
+def get_rooms_for_user_with_hashtags(user_id: int):
+    with SessionLocal() as session:
+        rooms = session.query(RoomUser).filter(RoomUser.user_id == user_id).all()
+        result = []
+        for room in rooms:
+            hashtags = get_hashtags_by_room_id(room.room_id)
+            title = get_room_by_room_id(room.room_id).room_name
+            result.append({
+                "title":title,
+                "room_id": room.room_id,
+                "user_id": room.user_id,
+                "hashtags": hashtags
+            })
+        return result
 def get_rooms_for_user(user_id: int):
     with SessionLocal() as session:
         return session.query(RoomUser).filter(RoomUser.user_id == user_id).all()
 
-# Delete (방에서 유저 제거)
 def delete_room_user(room_id: int, user_id: int):
     with SessionLocal() as session:
         db_room_user = session.query(RoomUser).filter(

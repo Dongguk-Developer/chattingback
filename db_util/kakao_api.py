@@ -1,4 +1,4 @@
-# from . import connect
+
 from sqlalchemy import create_engine, Column, Integer, String,BigInteger,Enum,DateTime,ForeignKey, TIMESTAMP
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -14,7 +14,6 @@ Base = declarative_base()
 
 
 
-# Create (Insert) a new KakaoAPI record
 def create_kakao_api(k_id,
             kakao_id,
             kakao_name,
@@ -30,7 +29,7 @@ def create_kakao_api(k_id,
         db_kakao = KakaoAPI(
             k_id=k_id,
             kakao_id=kakao_id,
-            kakao_name=kakao_id,
+            kakao_name=kakao_name,
             kakao_tell=kakao_tell,
             kakao_email=kakao_email,
             kakao_birth=kakao_birth,
@@ -49,14 +48,14 @@ def create_kakao_api(k_id,
             session.rollback()
             raise
 
-# Read (Retrieve) a KakaoAPI record by ID
 def get_kakao_api_by_id(k_id: int):
     with SessionLocal() as session:
         return session.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
+
 def get_kakao_api_by_user_id(user_id: int):
     with SessionLocal() as session:
         return session.query(KakaoAPI).filter(KakaoAPI.kakao_id == user_id).first()
-# Update an existing KakaoAPI record
+
 def update_kakao_api(k_id: int, updated_data):
     with SessionLocal() as session:
         db_kakao = session.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
@@ -76,7 +75,7 @@ def update_kakao_api(k_id: int, updated_data):
         else:
             return None
 
-# Delete a KakaoAPI record
+
 def delete_kakao_api(k_id: int):
     with SessionLocal() as session:
         db_kakao = session.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
@@ -85,20 +84,3 @@ def delete_kakao_api(k_id: int):
             session.commit()
             return True
         return False
-
-# Usage example:
-# Example data for creating a new record
-# kakao_data = {
-#     "kakao_id": 123456,
-#     "kakao_name": "John Doe",
-#     "kakao_tell": "010-1234-5678",
-#     "kakao_email": "johndoe@example.com",
-#     "kakao_birth": 1990,
-#     "kakao_refresh_token": "refresh_token_example",
-#     "kakao_access_token": "access_token_example"
-# }
-
-# new_kakao = create_kakao_api(kakao_data)
-# retrieved_kakao = get_kakao_api_by_id(new_kakao.k_id)
-# updated_kakao = update_kakao_api(new_kakao.k_id, {"kakao_name": "Jane Doe"})
-# delete_kakao_api(new_kakao.k_id)

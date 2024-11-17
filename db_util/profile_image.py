@@ -1,22 +1,11 @@
-from sqlalchemy import create_engine, Column, Integer, String,BigInteger,Enum,DateTime,ForeignKey, TIMESTAMP
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
-import enum
-from urllib.parse import quote_plus
-from datetime import datetime
 from db_util.db_session import SessionLocal
 from .models import ProfileImage
 
 
 Base = declarative_base()
 
-
-
-
-
-# Create a new ProfileImage
 def create_profile_image(profile_image_id,profile_image_target, target_id, profile_image_url, profile_image_create):
     with SessionLocal() as session:
         try:
@@ -39,7 +28,6 @@ def create_profile_image(profile_image_id,profile_image_target, target_id, profi
             session.rollback()
             print("Error occurred:", e)
 
-# Read ProfileImage by ID
 def get_profile_image_by_id(profile_image_id: int):
     with SessionLocal() as session:
         try:
@@ -56,7 +44,6 @@ def get_profile_image_by_id(profile_image_id: int):
             session.rollback()
             print("Error occurred:", e)
 
-# Update ProfileImage
 def update_profile_image(profile_image_id: int, **kwargs):
     with SessionLocal() as session:
         profile_image = get_profile_image_by_id(profile_image_id)
@@ -72,7 +59,6 @@ def update_profile_image(profile_image_id: int, **kwargs):
             print("ProfileImage not found.")
             return None
 
-# Delete ProfileImage
 def delete_profile_image(profile_image_id: int):
     with SessionLocal() as session:
         profile_image = get_profile_image_by_id(profile_image_id)
