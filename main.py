@@ -263,7 +263,7 @@ def auth_kakao_callback(code: str,response: Response,request:Request):
             
             # 유저 데이터 받아오기
             user_nickname = user_data.get("kakao_account").get("profile").get("nickname")
-            user_PI_argree = user_data.get("kakao_account").get("profile_nickname_needs_agreement")
+            user_PI_agree = user_data.get("kakao_account").get("profile_nickname_needs_agreement")
             k_id = user_data.get("id")
             profile_image_id = random.randint(1,2**30) # 프로필 이미지 ID 임의로 발급
             user_create = datetime.now()
@@ -314,7 +314,7 @@ def auth_kakao_callback(code: str,response: Response,request:Request):
                     profile_image_id=profile_image_id,
                     user_nickname=user_nickname,
                     user_xp=0,
-                    user_PI_argree=user_PI_argree,
+                    user_PI_agree=user_PI_agree,
                     user_age=user_age,
                     user_mbti=None,
                     user_job=None,
@@ -672,7 +672,7 @@ async def send_message(sid, data):
             "profile_image_id":data["user"]["profile_image_id"],
             "user_nickname":data["user"]["user_nickname"],
             "user_xp":data["user"]["user_xp"],
-            "user_PI_argree":data["user"]["user_PI_argree"],
+            "user_PI_agree":data["user"]["user_PI_agree"],
             "user_create":str(data["user"]["user_create"]),
             "user_update":str(data["user"]["user_update"]),
             "user_age":data["user"]["user_age"],
@@ -698,7 +698,7 @@ async def connect(sid, environ, auth):
                 await sio.enter_room(sid, room)
                 await sio.emit("connect_success", data={"user": {
                     'k_id':user.k_id, 'profile_image_id':user.profile_image_id, 'user_nickname':user.user_nickname, 'user_xp':user.user_xp, 
-                    'user_PI_argree':user.user_PI_argree, 'user_age':user.user_age, 'user_mbti':user.user_mbti, 'user_job':user.user_job, 
+                    'user_PI_agree':user.user_PI_agree, 'user_age':user.user_age, 'user_mbti':user.user_mbti, 'user_job':user.user_job, 
                     'user_study_field':user.user_study_field}, "message": f"Connected to room {room}!", "sessionid": sessionid}, room=sid)
             else: # room 정보가 없는 곳 접속
                 await sio.emit("redirect", {"url": "/"}, room=room)

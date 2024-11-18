@@ -54,7 +54,7 @@ class User(Base):
     profile_image_id = Column(Integer, ForeignKey(ProfileImage.profile_image_id), nullable=False)
     user_nickname = Column(String(45, collation='utf8mb4_general_ci'), nullable=False)
     user_xp = Column(Integer, nullable=False)
-    user_PI_argree = Column(String(10, collation='utf8mb4_general_ci'), nullable=False)
+    user_PI_agree = Column(String(10, collation='utf8mb4_general_ci'), nullable=False)
     user_create = Column(TIMESTAMP, nullable=False, default=datetime.utcnow)
     user_update = Column(TIMESTAMP, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     user_age = Column(Integer, nullable=False)
@@ -64,7 +64,7 @@ class User(Base):
     profile_image = relationship("ProfileImage", backref="user", foreign_keys=[profile_image_id])
     def __repr__(self):
         return (f"<User(user_id={self.user_id}, k_id={self.k_id}, profile_image_id={self.profile_image_id}, "
-                f"user_nickname='{self.user_nickname}', user_xp={self.user_xp}, user_PI_argree='{self.user_PI_argree}', "
+                f"user_nickname='{self.user_nickname}', user_xp={self.user_xp}, user_PI_agree='{self.user_PI_agree}', "
                 f"user_create={self.user_create}, user_update={self.user_update}, user_age={self.user_age}, "
                 f"user_mbti='{self.user_mbti}', user_job='{self.user_job}', user_study_field='{self.user_study_field}')>")
 

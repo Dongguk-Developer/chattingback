@@ -8,7 +8,7 @@ from .models import User,ProfileImage,RoomUser,Calendar,Message,MessageText,Mess
 Base = declarative_base()
 
 
-def create_user(user_id,k_id, profile_image_id, user_nickname, user_xp, user_PI_argree, user_age, user_mbti=None, user_job=None, user_study_field=None):
+def create_user(user_id,k_id, profile_image_id, user_nickname, user_xp, user_PI_agree, user_age, user_mbti=None, user_job=None, user_study_field=None):
     with SessionLocal() as session:
         try:
             new_user = User(
@@ -17,7 +17,7 @@ def create_user(user_id,k_id, profile_image_id, user_nickname, user_xp, user_PI_
                 profile_image_id=profile_image_id,
                 user_nickname=user_nickname,
                 user_xp=user_xp,
-                user_PI_argree=user_PI_argree,
+                user_PI_agree=user_PI_agree,
                 user_create=datetime.utcnow(),
                 user_update=datetime.utcnow(),
                 user_age=user_age,
@@ -70,7 +70,7 @@ def get_user_with_profile_image(user_id):
                     "profile_image_id": user.profile_image_id,
                     "user_nickname": user.user_nickname,
                     "user_xp": user.user_xp,
-                    "user_PI_argree": user.user_PI_argree,
+                    "user_PI_agree": user.user_PI_agree,
                     "user_create": str(user.user_create),
                     "user_update": str(user.user_update),
                     "user_age": user.user_age,
@@ -86,7 +86,7 @@ def get_user_with_profile_image(user_id):
         except Exception as e:
             session.rollback()
             print("Error occurred:", e)
-def update_user(user_id, user_nickname=None, user_xp=None, user_PI_argree=None, user_age=None, user_mbti=None, user_job=None, user_study_field=None,profile_image_id=None):
+def update_user(user_id, user_nickname=None, user_xp=None, user_PI_agree=None, user_age=None, user_mbti=None, user_job=None, user_study_field=None,profile_image_id=None):
     with SessionLocal() as session:
         try:
             user = session.query(User).filter(User.user_id == user_id).first()
@@ -95,8 +95,8 @@ def update_user(user_id, user_nickname=None, user_xp=None, user_PI_argree=None, 
                     user.user_nickname = user_nickname
                 if user_xp is not None:
                     user.user_xp = user_xp
-                if user_PI_argree is not None:
-                    user.user_PI_argree = user_PI_argree
+                if user_PI_agree is not None:
+                    user.user_PI_agree = user_PI_agree
                 if user_age is not None:
                     user.user_age = user_age
                 if user_mbti is not None:
