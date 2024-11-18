@@ -15,7 +15,7 @@ class KakaoAPI(Base):
     k_id = Column(BigInteger, primary_key=True)
     kakao_id = Column(BigInteger, nullable=False)
     kakao_name = Column(String(45, collation='utf8mb4_general_ci'), nullable=False)
-    kakao_tell = Column(String(45, collation='utf8mb4_general_ci'), nullable=False)
+    kakao_tel = Column(String(45, collation='utf8mb4_general_ci'), nullable=False)
     kakao_email = Column(String(45, collation='utf8mb4_general_ci'), nullable=False)
     kakao_birth = Column(Integer, nullable=False)
     kakao_create = Column(DateTime, default=None)
@@ -26,7 +26,7 @@ class KakaoAPI(Base):
 
     def __repr__(self):
         return (f"<KakaoAPI(k_id={self.k_id}, kakao_id={self.kakao_id}, kakao_name='{self.kakao_name}', "
-                f"kakao_tell='{self.kakao_tell}', kakao_email='{self.kakao_email}', kakao_birth={self.kakao_birth}, "
+                f"kakao_tel='{self.kakao_tel}', kakao_email='{self.kakao_email}', kakao_birth={self.kakao_birth}, "
                 f"kakao_create={self.kakao_create}, kakao_update={self.kakao_update}, kakao_image='{self.kakao_image}', "
                 f"kakao_refresh_token='{self.kakao_refresh_token}', kakao_access_token='{self.kakao_access_token}')>")
 class ProfileImageTargetEnum(enum.Enum):

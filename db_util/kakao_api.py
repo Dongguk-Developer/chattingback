@@ -17,7 +17,7 @@ Base = declarative_base()
 def create_kakao_api(k_id,
             kakao_id,
             kakao_name,
-            kakao_tell,
+            kakao_tel,
             kakao_email,
             kakao_birth,
             kakao_create,
@@ -30,7 +30,7 @@ def create_kakao_api(k_id,
             k_id=k_id,
             kakao_id=kakao_id,
             kakao_name=kakao_name,
-            kakao_tell=kakao_tell,
+            kakao_tel=kakao_tel,
             kakao_email=kakao_email,
             kakao_birth=kakao_birth,
             kakao_create=kakao_create,
@@ -61,7 +61,7 @@ def update_kakao_api(k_id: int, updated_data):
         db_kakao = session.query(KakaoAPI).filter(KakaoAPI.k_id == k_id).first()
         if db_kakao:
             db_kakao.kakao_name = updated_data.get("kakao_name", db_kakao.kakao_name)
-            db_kakao.kakao_tell = updated_data.get("kakao_tell", db_kakao.kakao_tell)
+            db_kakao.kakao_tel = updated_data.get("kakao_tel", db_kakao.kakao_tel)
             db_kakao.kakao_email = updated_data.get("kakao_email", db_kakao.kakao_email)
             db_kakao.kakao_birth = updated_data.get("kakao_birth", db_kakao.kakao_birth)
             db_kakao.kakao_update = datetime.utcnow()
@@ -84,20 +84,3 @@ def delete_kakao_api(k_id: int):
             session.commit()
             return True
         return False
-
-# Usage example:
-# Example data for creating a new record
-# kakao_data = {
-#     "kakao_id": 123456,
-#     "kakao_name": "John Doe",
-#     "kakao_tell": "010-1234-5678",
-#     "kakao_email": "johndoe@example.com",
-#     "kakao_birth": 1990,
-#     "kakao_refresh_token": "refresh_token_example",
-#     "kakao_access_token": "access_token_example"
-# }
-
-# new_kakao = create_kakao_api(kakao_data)
-# retrieved_kakao = get_kakao_api_by_id(new_kakao.k_id)
-# updated_kakao = update_kakao_api(new_kakao.k_id, {"kakao_name": "Jane Doe"})
-# delete_kakao_api(new_kakao.k_id)

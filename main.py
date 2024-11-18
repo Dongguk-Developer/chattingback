@@ -273,7 +273,7 @@ def auth_kakao_callback(code: str,response: Response,request:Request):
             k_id = random.randint(2**31,2**32) # 우리가 사용자에게 발급해주는 ID
             kakao_id = user_id # 카카오 API에서 주는 사용자의 ID값
             kakao_name = user_nickname # 카카오에 있는 유저명 가능? -> O
-            kakao_tell = "01011111234" # 전화번호 수집 가능? -> X
+            kakao_tel = "01011111234" # 전화번호 수집 가능? -> X
             kakao_email = "" # 이메일 정보 가능 -> O
             kakao_birth = 0 # 생일정보 수집 가능? -> X
             kakao_refresh_token = token_response_data.get("refresh_token")
@@ -300,7 +300,7 @@ def auth_kakao_callback(code: str,response: Response,request:Request):
                     k_id=k_id,
                     kakao_id=kakao_id,
                     kakao_name=kakao_name,
-                    kakao_tell=kakao_tell,
+                    kakao_tel=kakao_tel,
                     kakao_email=kakao_email,
                     kakao_birth=kakao_birth,
                     kakao_create=datetime.utcnow(),
