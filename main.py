@@ -322,6 +322,8 @@ def auth_kakao_callback(code: str,response: Response,request:Request):
                     
             
             return res
+        else:
+            return {"error":{"status":token_response.status_code},"token_res":token_response.json()}
     except Exception as e:
         return {"error": "인증 실패","Exception":str(e)}
         
