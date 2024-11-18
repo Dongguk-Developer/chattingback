@@ -174,8 +174,8 @@ def get_user_by_sessionid(sessionid):
 def read_root():
     return "StudyHero"
 @app.get("/test")
-def test_get():
-    return str(session_data)+str(socket_session_data)
+def test_get(current_user:dict=Depends(get_current_user)):
+    return str(current_user)
 @app.post("/test")
 def test_root():
     return [{"sender":"12","messge":"hello","time":10,"image":"image"},{"sender":"12","messge":"hello","time":10,"image":"image"},{"sender":"12","messge":"hello","time":10,"image":"https://s.pstatic.net/dthumb.phinf/?src=%22https%3A%2F%2Fs.pstatic.net%2Fmimgnews%2Fimage%2Forigin%2F665%2F2024%2F11%2F05%2F3942.jpg%3Fut%3D20241105174614%22&type=nf312_208&service=navermain"}]
