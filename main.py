@@ -206,121 +206,125 @@ async def auth_kakao():
     )
 @app.get("/oauth/kakao/callback")
 def auth_kakao_callback(code: str,response: Response,request:Request):
-    res = HTMLResponse("<body><script>window.close();</script></body>")
-    token_response = requests.post(
-            KAKAO_TOKEN_URL,
-            data={
-                "grant_type": "authorization_code",
-                "client_id": KAKAO_CLIENT_ID,
-                "redirect_uri": KAKAO_REDIRECT_URI,
-                "code": code,
-                "client_secret": KAKAO_CLIENT_SECRET,
-            },
-        )
-    token_response_data = token_response.json()
-
-    access_token = token_response_data.get("access_token")
-    refresh_token = token_response_data.get("refresh_token")
-    
-    if access_token:
-        user_response = requests.get(
-                KAKAO_USER_INFO_URL,
-                headers={"Authorization": f"Bearer {access_token}"},
+    try:
+        res = HTMLResponse("<body><script>window.close();</script></body>")
+        token_response = requests.post(
+                KAKAO_TOKEN_URL,
+                data={
+                    "grant_type": "authorization_code",
+                    "client_id": KAKAO_CLIENT_ID,
+                    "redirect_uri": KAKAO_REDIRECT_URI,
+                    "code": code,
+                    "client_secret": KAKAO_CLIENT_SECRET,
+                },
             )
-        user_data = user_response.json()        
-        user_id = user_data.get("id")
+        token_response_data = token_response.json()
 
-        # 유저 폴더 생성
-        if not os.path.exists(f"./static"):
-            os.mkdir(f"./static")
-        if not os.path.exists(f"./static/{user_id}"):
-            os.mkdir(f"./static/{user_id}")
-        if not os.path.exists(f"./static/{user_id}/profile_picture"):
-            os.mkdir(f"./static/{user_id}/profile_picture")
-
-        # 유저 프로필 다운로드(이미지, 썸네일)
-        origin_profile_image_url = user_data['properties']['profile_image']
-        profile_image_path = f"./static/{user_id}/profile_picture/"+origin_profile_image_url.split("/")[-1]
-        profile_image_url = f"{BACK_URL}/static/{user_id}/profile_picture/"+origin_profile_image_url.split("/")[-1]
-
-        thumbnail_image = user_data['properties']['thumbnail_image']
-        thumbnail_image_path = f"./static/{user_id}/profile_picture/thumbnail_"+thumbnail_image.split("/")[-1]
-
-        profile_image_create_time = 0
-        if not os.path.exists(profile_image_path):
-            profile_req = requests.get(origin_profile_image_url)
-            if profile_req.status_code==200:
-                profile_image_create_time = datetime.now()
-                with open(profile_image_path,"wb+") as f:
-                    f.write(profile_req.content)
-        if not os.path.exists(thumbnail_image_path):
-            thumbnail_req = requests.get(thumbnail_image)
-            if thumbnail_req.status_code==200:
-                profile_image_create_time = datetime.now()
-                with open(thumbnail_image_path,"wb+") as f:
-                    f.write(thumbnail_req.content)
+        access_token = token_response_data.get("access_token")
+        refresh_token = token_response_data.get("refresh_token")
         
-        # 유저 데이터 받아오기
-        user_nickname = user_data.get("kakao_account").get("profile").get("nickname")
-        user_PI_argree = user_data.get("kakao_account").get("profile_nickname_needs_agreement")
-        k_id = user_data.get("id")
-        profile_image_id = random.randint(1,2**30) # 프로필 이미지 ID 임의로 발급
-        user_create = datetime.now()
-        user_update = datetime.now()
-        user_age = 0
+        if access_token:
+            user_response = requests.get(
+                    KAKAO_USER_INFO_URL,
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+            user_data = user_response.json()        
+            user_id = user_data.get("id")
 
-        k_id = random.randint(2**31,2**32) # 우리가 사용자에게 발급해주는 ID
-        kakao_id = user_id # 카카오 API에서 주는 사용자의 ID값
-        kakao_name = user_nickname # 카카오에 있는 유저명 가능? -> O
-        kakao_tell = "01011111234" # 전화번호 수집 가능? -> X
-        kakao_email = "" # 이메일 정보 가능 -> O
-        kakao_birth = 0 # 생일정보 수집 가능? -> X
-        kakao_refresh_token = token_response_data.get("refresh_token")
-        kakao_access_token = token_response_data.get("access_token")
+            # 유저 폴더 생성
+            if not os.path.exists(f"./static"):
+                os.mkdir(f"./static")
+            if not os.path.exists(f"./static/{user_id}"):
+                os.mkdir(f"./static/{user_id}")
+            if not os.path.exists(f"./static/{user_id}/profile_picture"):
+                os.mkdir(f"./static/{user_id}/profile_picture")
 
-        expire = (datetime.now(timezone(timedelta(hours=9))) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)).timestamp()
+            # 유저 프로필 다운로드(이미지, 썸네일)
+            origin_profile_image_url = user_data['properties']['profile_image']
+            profile_image_path = f"./static/{user_id}/profile_picture/"+origin_profile_image_url.split("/")[-1]
+            profile_image_url = f"{BACK_URL}/static/{user_id}/profile_picture/"+origin_profile_image_url.split("/")[-1]
 
-        session_id = generate_session_id()
-        session_data[session_id] = {"user_id":user_id,"create_at":time.time(),"expire":expire,"ip":request.client.host,"request":request,"sid":""}
+            thumbnail_image = user_data['properties']['thumbnail_image']
+            thumbnail_image_path = f"./static/{user_id}/profile_picture/thumbnail_"+thumbnail_image.split("/")[-1]
 
-        res.set_cookie(
-            key="sessionid",
-            value=session_id,
-            httponly=True,  # JavaScript에서 접근 불가
-            secure=True,    # HTTPS에서만 전송
-            samesite="strict"  # 동일 사이트에서만 사용
-        )
+            profile_image_create_time = 0
+            if not os.path.exists(profile_image_path):
+                profile_req = requests.get(origin_profile_image_url)
+                if profile_req.status_code==200:
+                    profile_image_create_time = datetime.now()
+                    with open(profile_image_path,"wb+") as f:
+                        f.write(profile_req.content)
+            if not os.path.exists(thumbnail_image_path):
+                thumbnail_req = requests.get(thumbnail_image)
+                if thumbnail_req.status_code==200:
+                    profile_image_create_time = datetime.now()
+                    with open(thumbnail_image_path,"wb+") as f:
+                        f.write(thumbnail_req.content)
+            
+            # 유저 데이터 받아오기
+            user_nickname = user_data.get("kakao_account").get("profile").get("nickname")
+            user_PI_argree = user_data.get("kakao_account").get("profile_nickname_needs_agreement")
+            k_id = user_data.get("id")
+            profile_image_id = random.randint(1,2**30) # 프로필 이미지 ID 임의로 발급
+            user_create = datetime.now()
+            user_update = datetime.now()
+            user_age = 0
 
-        user = user_table.get_user_by_id(user_id)
-        if not user:
+            k_id = random.randint(2**31,2**32) # 우리가 사용자에게 발급해주는 ID
+            kakao_id = user_id # 카카오 API에서 주는 사용자의 ID값
+            kakao_name = user_nickname # 카카오에 있는 유저명 가능? -> O
+            kakao_tell = "01011111234" # 전화번호 수집 가능? -> X
+            kakao_email = "" # 이메일 정보 가능 -> O
+            kakao_birth = 0 # 생일정보 수집 가능? -> X
+            kakao_refresh_token = token_response_data.get("refresh_token")
+            kakao_access_token = token_response_data.get("access_token")
 
-            profile_image.create_profile_image(profile_image_id,'user',k_id,profile_image_url,profile_image_create_time)
-            kakao_api.create_kakao_api(
-                k_id=k_id,
-                kakao_id=kakao_id,
-                kakao_name=kakao_name,
-                kakao_tell=kakao_tell,
-                kakao_email=kakao_email,
-                kakao_birth=kakao_birth,
-                kakao_create=datetime.utcnow(),
-                kakao_update=datetime.utcnow(),
-                kakao_image=origin_profile_image_url,
-                kakao_refresh_token=kakao_refresh_token,
-                kakao_access_token=kakao_access_token)
-            user_table.create_user(
-                user_id=user_id,
-                k_id=k_id,
-                profile_image_id=profile_image_id,
-                user_nickname=user_nickname,
-                user_xp=0,
-                user_PI_argree=user_PI_argree,
-                user_age=user_age,
-                user_mbti=None,
-                user_job=None,
-                user_study_field=None)
-                
+            expire = (datetime.now(timezone(timedelta(hours=9))) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)).timestamp()
+
+            session_id = generate_session_id()
+            session_data[session_id] = {"user_id":user_id,"create_at":time.time(),"expire":expire,"ip":request.client.host,"request":request,"sid":""}
+
+            res.set_cookie(
+                key="sessionid",
+                value=session_id,
+                httponly=True,  # JavaScript에서 접근 불가
+                secure=True,    # HTTPS에서만 전송
+                samesite="strict"  # 동일 사이트에서만 사용
+            )
+
+            user = user_table.get_user_by_id(user_id)
+            if not user:
+
+                profile_image.create_profile_image(profile_image_id,'user',k_id,profile_image_url,profile_image_create_time)
+                kakao_api.create_kakao_api(
+                    k_id=k_id,
+                    kakao_id=kakao_id,
+                    kakao_name=kakao_name,
+                    kakao_tell=kakao_tell,
+                    kakao_email=kakao_email,
+                    kakao_birth=kakao_birth,
+                    kakao_create=datetime.utcnow(),
+                    kakao_update=datetime.utcnow(),
+                    kakao_image=origin_profile_image_url,
+                    kakao_refresh_token=kakao_refresh_token,
+                    kakao_access_token=kakao_access_token)
+                user_table.create_user(
+                    user_id=user_id,
+                    k_id=k_id,
+                    profile_image_id=profile_image_id,
+                    user_nickname=user_nickname,
+                    user_xp=0,
+                    user_PI_argree=user_PI_argree,
+                    user_age=user_age,
+                    user_mbti=None,
+                    user_job=None,
+                    user_study_field=None)
+                    
+            
+            return res
+    except Exception as e:
+        return {"error": "인증 실패","Exception":str(e)}
         
-        return res
     return {"error": "인증 실패"}
 # 유저 객체를 전달함
 @app.post("/profile/get")
